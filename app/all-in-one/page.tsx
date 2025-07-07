@@ -1,651 +1,501 @@
 "use client"
 
+import type React from "react"
+
 import { useState } from "react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { Badge } from "@/components/ui/badge"
-import { Alert, AlertDescription } from "@/components/ui/alert"
-import { Separator } from "@/components/ui/separator"
-import {
-  Car,
-  FileText,
-  Upload,
-  CheckCircle,
-  Clock,
-  User,
-  Building,
-  Truck,
-  Ship,
-  Download,
-  Send,
-  X,
-  ArrowRight,
-  Package,
-  Globe,
-} from "lucide-react"
-import Image from "next/image"
+import { Textarea } from "@/components/ui/textarea"
+import { Upload, FileText, Car, User, Package, Ship, CheckCircle } from "lucide-react"
+import Link from "next/link"
 
-interface VehicleInfo {
+interface AllInOneFormData {
+  // 차량 정보
+  chassisNumber: string
   vehicleNumber: string
   modelName: string
-  chassisNumber: string
   year: string
-  mileage: string
+  fuel: string
+  vin: string
+  // 계약 정보
   buyerName: string
-  buyerCountry: string
+  contractDate: string
+  exportCountry: string
   fobPrice: string
   currency: string
-}
-
-interface ProcessStep {
-  id: string
-  title: string
-  description: string
-  status: "pending" | "in_progress" | "completed"
-  assignedTo: string
-  completedDate?: string
-  documents: string[]
-}
-
-interface FileUpload {
-  name: string
-  type: string
-  size: string
-  uploadDate: string
+  // 수출 조건
+  containerType: string
+  departureDate: string
+  shoringCompany: string
+  // 추가 정보
+  notes: string
 }
 
 export default function AllInOnePage() {
-  const [currentStep, setCurrentStep] = useState(0)
-  const [vehicleInfo, setVehicleInfo] = useState<VehicleInfo>({
+  const [formData, setFormData] = useState<AllInOneFormData>({
+    chassisNumber: "",
     vehicleNumber: "",
     modelName: "",
-    chassisNumber: "",
     year: "",
-    mileage: "",
+    fuel: "",
+    vin: "",
     buyerName: "",
-    buyerCountry: "",
+    contractDate: "",
+    exportCountry: "",
     fobPrice: "",
     currency: "USD",
+    containerType: "",
+    departureDate: "",
+    shoringCompany: "",
+    notes: "",
   })
 
-  const [processSteps, setProcessSteps] = useState<ProcessStep[]>([
-    {
-      id: "registration",
-      title: "차량 등록",
-      description: "수출할 차량의 기본 정보를 등록합니다",
-      status: "in_progress",
-      assignedTo: "수출업체",
-      documents: [],
-    },
-    {
-      id: "invoice",
-      title: "인보이스 작성",
-      description: "수출 인보이스 및 관련 서류를 작성합니다",
-      status: "pending",
-      assignedTo: "수출업체",
-      documents: [],
-    },
-    {
-      id: "cancellation",
-      title: "말소 신청",
-      description: "차량 말소 신청을 진행합니다",
-      status: "pending",
-      assignedTo: "수출업체",
-      documents: [],
-    },
-    {
-      id: "customs",
-      title: "관세 처리",
-      description: "관세사가 수출 신고서를 작성하고 승인을 받습니다",
-      status: "pending",
-      assignedTo: "관세사",
-      documents: [],
-    },
-    {
-      id: "shoring",
-      title: "쇼링 작업",
-      description: "차량을 항구로 운송하고 컨테이너에 적재합니다",
-      status: "pending",
-      assignedTo: "쇼링업체",
-      documents: [],
-    },
-    {
-      id: "shipping",
-      title: "선적 처리",
-      description: "선박에 적재하고 B/L을 발급합니다",
-      status: "pending",
-      assignedTo: "선사대리점",
-      documents: [],
-    },
-    {
-      id: "delivery",
-      title: "배송 완료",
-      description: "목적지 도착 및 바이어에게 인도합니다",
-      status: "pending",
-      assignedTo: "바이어",
-      documents: [],
-    },
-  ])
+  const [files, setFiles] = useState({
+    registration: null as File | null,
+    photos: null as File | null,
+    bankAccount: null as File | null,
+    logo: null as File | null,
+  })
 
-  const [uploadedFiles, setUploadedFiles] = useState<FileUpload[]>([])
-  const [message, setMessage] = useState("")
-  const [showSimulation, setShowSimulation] = useState(false)
+  const [isSubmitted, setIsSubmitted] = useState(false)
+  const [generatedId, setGeneratedId] = useState<string>("")
 
-  const handleVehicleInfoChange = (field: keyof VehicleInfo, value: string) => {
-    setVehicleInfo((prev) => ({ ...prev, [field]: value }))
+  const handleInputChange = (field: keyof AllInOneFormData, value: string) => {
+    setFormData((prev) => ({ ...prev, [field]: value }))
   }
 
-  const handleFileUpload = (fileType: string) => {
-    const newFile: FileUpload = {
-      name: `${fileType}_${Date.now()}.pdf`,
-      type: fileType,
-      size: `${Math.floor(Math.random() * 500 + 100)}KB`,
-      uploadDate: new Date().toLocaleDateString("ko-KR"),
+  const handleFileUpload = (fileType: keyof typeof files, event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0]
+    if (file) {
+      setFiles((prev) => ({ ...prev, [fileType]: file }))
     }
-    setUploadedFiles((prev) => [...prev, newFile])
-    setMessage(`${fileType} 파일이 업로드되었습니다.`)
-    setTimeout(() => setMessage(""), 3000)
-  }
-
-  const completeCurrentStep = () => {
-    setProcessSteps((prev) =>
-      prev.map((step, index) => {
-        if (index === currentStep) {
-          return {
-            ...step,
-            status: "completed",
-            completedDate: new Date().toLocaleDateString("ko-KR"),
-            documents: uploadedFiles.map((file) => file.name),
-          }
-        }
-        if (index === currentStep + 1) {
-          return { ...step, status: "in_progress" }
-        }
-        return step
-      }),
-    )
-
-    if (currentStep < processSteps.length - 1) {
-      setCurrentStep(currentStep + 1)
-      setMessage(`${processSteps[currentStep].title}이(가) 완료되었습니다!`)
-    } else {
-      setMessage("모든 수출 프로세스가 완료되었습니다! 🎉")
-      setShowSimulation(true)
-    }
-    setTimeout(() => setMessage(""), 3000)
-  }
-
-  const resetProcess = () => {
-    setCurrentStep(0)
-    setProcessSteps((prev) =>
-      prev.map((step, index) => ({
-        ...step,
-        status: index === 0 ? "in_progress" : "pending",
-        completedDate: undefined,
-        documents: [],
-      })),
-    )
-    setUploadedFiles([])
-    setVehicleInfo({
-      vehicleNumber: "",
-      modelName: "",
-      chassisNumber: "",
-      year: "",
-      mileage: "",
-      buyerName: "",
-      buyerCountry: "",
-      fobPrice: "",
-      currency: "USD",
-    })
-    setShowSimulation(false)
-    setMessage("프로세스가 초기화되었습니다.")
-    setTimeout(() => setMessage(""), 3000)
   }
 
   const fillDummyData = () => {
-    setVehicleInfo({
-      vehicleNumber: "12가3456",
-      modelName: "현대 소나타 2020",
+    setFormData({
       chassisNumber: "KMHD141GPMA123456",
+      vehicleNumber: "12가3456",
+      modelName: "현대 소나타",
       year: "2020",
-      mileage: "45000",
+      fuel: "가솔린",
+      vin: "KMHD141GPMA123456",
       buyerName: "Ahmed Hassan",
-      buyerCountry: "UAE",
+      contractDate: "2024-01-15",
+      exportCountry: "이집트",
       fobPrice: "15000",
       currency: "USD",
+      containerType: "20ft",
+      departureDate: "2024-02-01",
+      shoringCompany: "㈜디오로지스",
+      notes: "Port Said 항구 도착 예정, 바이어 직접 픽업",
     })
-
-    const dummyFiles: FileUpload[] = [
-      { name: "차량등록증.pdf", type: "등록증", size: "245KB", uploadDate: new Date().toLocaleDateString("ko-KR") },
-      { name: "인보이스.pdf", type: "인보이스", size: "189KB", uploadDate: new Date().toLocaleDateString("ko-KR") },
-      { name: "말소증명서.pdf", type: "말소증", size: "156KB", uploadDate: new Date().toLocaleDateString("ko-KR") },
-    ]
-    setUploadedFiles(dummyFiles)
-    setMessage("더미 데이터가 입력되었습니다!")
-    setTimeout(() => setMessage(""), 3000)
   }
 
-  const getStepIcon = (status: ProcessStep["status"]) => {
-    switch (status) {
-      case "completed":
-        return <CheckCircle className="w-6 h-6 text-green-400" />
-      case "in_progress":
-        return <Clock className="w-6 h-6 text-blue-400 animate-pulse" />
-      default:
-        return <div className="w-6 h-6 rounded-full border-2 border-gray-600" />
-    }
-  }
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault()
 
-  const getAssigneeIcon = (assignedTo: string) => {
-    switch (assignedTo) {
-      case "수출업체":
-        return <Car className="w-4 h-4" />
-      case "관세사":
-        return <FileText className="w-4 h-4" />
-      case "쇼링업체":
-        return <Truck className="w-4 h-4" />
-      case "선사대리점":
-        return <Ship className="w-4 h-4" />
-      case "바이어":
-        return <User className="w-4 h-4" />
-      default:
-        return <Building className="w-4 h-4" />
+    // 더미 ID 생성
+    const newId = `V${Date.now().toString().slice(-3)}`
+    setGeneratedId(newId)
+
+    // observer_dataset.json 형태로 콘솔 출력
+    const observerData = {
+      id: newId,
+      timestamp: new Date().toISOString(),
+      vehicle_info: {
+        chassis_number: formData.chassisNumber,
+        vehicle_number: formData.vehicleNumber,
+        model_name: formData.modelName,
+        year: Number.parseInt(formData.year),
+        fuel: formData.fuel,
+        vin: formData.vin,
+      },
+      contract_info: {
+        buyer_name: formData.buyerName,
+        contract_date: formData.contractDate,
+        export_country: formData.exportCountry,
+        fob_price: Number.parseFloat(formData.fobPrice),
+        currency: formData.currency,
+      },
+      export_conditions: {
+        container_type: formData.containerType,
+        departure_date: formData.departureDate,
+        shoring_company: formData.shoringCompany,
+      },
+      files_uploaded: Object.entries(files)
+        .filter(([_, file]) => file !== null)
+        .map(([key, _]) => key),
+      status: "purchased",
+      current_step: 1,
+      notes: formData.notes,
     }
+
+    console.log("=== Observer Dataset Generated ===")
+    console.log(JSON.stringify(observerData, null, 2))
+
+    setIsSubmitted(true)
   }
 
   return (
-    <div className="min-h-screen bg-black text-white">
-      {/* Animated Background */}
-      <div className="fixed inset-0 overflow-hidden pointer-events-none">
-        <div className="absolute inset-0 bg-gradient-to-br from-black via-gray-900 to-black"></div>
-        <div className="absolute top-1/4 left-1/4 w-96 h-96 bg-[#00D4AA]/5 rounded-full blur-3xl animate-pulse"></div>
-        <div className="absolute bottom-1/4 right-1/4 w-96 h-96 bg-blue-500/5 rounded-full blur-3xl animate-pulse delay-1000"></div>
-      </div>
+    <div className="min-h-screen bg-gradient-to-b from-slate-50 to-white py-8">
+      <div className="container mx-auto px-4 max-w-6xl">
+        {/* Header */}
+        <div className="text-center mb-8">
+          <Link href="/" className="text-blue-600 hover:text-blue-700 text-sm mb-4 inline-block">
+            ← 홈으로 돌아가기
+          </Link>
+          <h1 className="text-4xl font-bold text-slate-800 mb-2">All-in-One 통합정보 입력</h1>
+          <p className="text-slate-600">수출 프로세스 전 과정에 필요한 모든 정보를 한 번에 입력하세요</p>
 
-      {/* Header */}
-      <div className="relative border-b border-gray-800 bg-black/80 backdrop-blur-sm sticky top-0 z-50">
-        <div className="container mx-auto px-6 py-4">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center space-x-4">
-              <div className="flex items-center space-x-3">
-                <Image src="/images/logo.png" alt="GlobalCar" width={40} height={40} className="rounded-lg" />
-                <div>
-                  <h1 className="text-2xl font-bold">GlobalCar</h1>
-                  <p className="text-sm text-gray-400">All-in-One 수출 프로세스</p>
-                </div>
-              </div>
-            </div>
-            <div className="flex items-center space-x-4">
-              <Button
-                onClick={fillDummyData}
-                variant="outline"
-                className="border-gray-700 text-gray-300 hover:bg-gray-800 bg-transparent"
-              >
-                <Package className="w-4 h-4 mr-2" />
-                더미 데이터
-              </Button>
-              <Button
-                onClick={resetProcess}
-                variant="outline"
-                className="border-gray-700 text-gray-300 hover:bg-gray-800 bg-transparent"
-              >
-                <ArrowRight className="w-4 h-4 mr-2" />
-                초기화
-              </Button>
-            </div>
+          <div className="flex justify-center mt-6">
+            <Button
+              onClick={fillDummyData}
+              variant="outline"
+              className="bg-yellow-50 border-yellow-300 text-yellow-700 hover:bg-yellow-100"
+            >
+              <FileText className="w-4 h-4 mr-2" />
+              더미 데이터 자동 입력
+            </Button>
           </div>
         </div>
-      </div>
 
-      <div className="relative container mx-auto px-6 py-8">
-        {/* Alert Message */}
-        {message && (
-          <Alert className="mb-6 bg-green-500/20 border-green-500/30 text-green-300">
-            <CheckCircle className="h-4 w-4 text-green-400" />
-            <AlertDescription>{message}</AlertDescription>
-          </Alert>
-        )}
-
-        {/* Process Overview */}
-        <Card className="bg-gradient-to-br from-gray-900/80 to-gray-800/50 border-gray-700/50 backdrop-blur-sm mb-8">
-          <CardHeader>
-            <CardTitle className="flex items-center space-x-2 text-[#00D4AA]">
-              <Globe className="w-5 h-5" />
-              <span>수출 프로세스 현황</span>
-            </CardTitle>
-            <CardDescription className="text-gray-400">
-              전체 {processSteps.length}단계 중 {processSteps.filter((s) => s.status === "completed").length}단계 완료
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-4">
-              {processSteps.map((step, index) => (
-                <div
-                  key={step.id}
-                  className={`flex items-center space-x-4 p-4 rounded-lg border transition-all duration-300 ${
-                    index === currentStep
-                      ? "border-[#00D4AA]/50 bg-[#00D4AA]/5"
-                      : step.status === "completed"
-                        ? "border-green-500/30 bg-green-500/5"
-                        : "border-gray-700/50 bg-gray-800/20"
-                  }`}
-                >
-                  <div className="flex-shrink-0">{getStepIcon(step.status)}</div>
-                  <div className="flex-1">
-                    <div className="flex items-center justify-between mb-1">
-                      <h3 className="font-semibold text-white">{step.title}</h3>
-                      <div className="flex items-center space-x-2">
-                        {getAssigneeIcon(step.assignedTo)}
-                        <span className="text-sm text-gray-400">{step.assignedTo}</span>
-                      </div>
-                    </div>
-                    <p className="text-gray-400 text-sm">{step.description}</p>
-                    {step.completedDate && <p className="text-green-400 text-xs mt-1">완료일: {step.completedDate}</p>}
-                  </div>
-                  {step.status === "completed" && (
-                    <Badge className="bg-green-500/20 text-green-400 border-green-500/30">완료</Badge>
-                  )}
-                  {index === currentStep && step.status === "in_progress" && (
-                    <Badge className="bg-blue-500/20 text-blue-400 border-blue-500/30">진행중</Badge>
-                  )}
-                </div>
-              ))}
-            </div>
-          </CardContent>
-        </Card>
-
-        <div className="grid lg:grid-cols-2 gap-8">
-          {/* Vehicle Information */}
-          <Card className="bg-gradient-to-br from-gray-900/80 to-gray-800/50 border-gray-700/50 backdrop-blur-sm">
-            <CardHeader>
-              <CardTitle className="flex items-center space-x-2 text-[#00D4AA]">
-                <Car className="w-5 h-5" />
-                <span>차량 정보</span>
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <Label className="text-gray-300">차량번호</Label>
-                  <Input
-                    value={vehicleInfo.vehicleNumber}
-                    onChange={(e) => handleVehicleInfoChange("vehicleNumber", e.target.value)}
-                    placeholder="12가3456"
-                    className="bg-gray-800/50 border-gray-600 text-white placeholder-gray-400"
-                  />
-                </div>
-                <div>
-                  <Label className="text-gray-300">모델명</Label>
-                  <Input
-                    value={vehicleInfo.modelName}
-                    onChange={(e) => handleVehicleInfoChange("modelName", e.target.value)}
-                    placeholder="현대 소나타 2020"
-                    className="bg-gray-800/50 border-gray-600 text-white placeholder-gray-400"
-                  />
-                </div>
+        {isSubmitted ? (
+          // 성공 화면
+          <Card className="max-w-2xl mx-auto">
+            <CardContent className="text-center py-12">
+              <CheckCircle className="h-20 w-20 text-green-600 mx-auto mb-6" />
+              <h2 className="text-2xl font-bold text-slate-800 mb-4">정보 등록 완료!</h2>
+              <p className="text-slate-600 mb-6">
+                차량 ID: <span className="font-mono font-bold text-blue-600">{generatedId}</span>
+                <br />
+                observer_dataset.json이 생성되었습니다.
+              </p>
+              <div className="flex flex-col sm:flex-row gap-4 justify-center">
+                <Link href={`/process-flow/${generatedId}`}>
+                  <Button className="bg-blue-600 hover:bg-blue-700">프로세스 플로우로 이동</Button>
+                </Link>
+                <Button variant="outline" onClick={() => setIsSubmitted(false)}>
+                  새로운 차량 등록
+                </Button>
               </div>
-
-              <div>
-                <Label className="text-gray-300">차대번호</Label>
-                <Input
-                  value={vehicleInfo.chassisNumber}
-                  onChange={(e) => handleVehicleInfoChange("chassisNumber", e.target.value)}
-                  placeholder="KMHD141GPMA123456"
-                  className="bg-gray-800/50 border-gray-600 text-white placeholder-gray-400 font-mono"
-                />
-              </div>
-
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <Label className="text-gray-300">연식</Label>
-                  <Input
-                    value={vehicleInfo.year}
-                    onChange={(e) => handleVehicleInfoChange("year", e.target.value)}
-                    placeholder="2020"
-                    className="bg-gray-800/50 border-gray-600 text-white placeholder-gray-400"
-                  />
-                </div>
-                <div>
-                  <Label className="text-gray-300">주행거리 (km)</Label>
-                  <Input
-                    value={vehicleInfo.mileage}
-                    onChange={(e) => handleVehicleInfoChange("mileage", e.target.value)}
-                    placeholder="45000"
-                    className="bg-gray-800/50 border-gray-600 text-white placeholder-gray-400"
-                  />
-                </div>
-              </div>
-
-              <Separator className="bg-gray-700" />
-
-              <div>
-                <Label className="text-gray-300">바이어명</Label>
-                <Input
-                  value={vehicleInfo.buyerName}
-                  onChange={(e) => handleVehicleInfoChange("buyerName", e.target.value)}
-                  placeholder="Ahmed Hassan"
-                  className="bg-gray-800/50 border-gray-600 text-white placeholder-gray-400"
-                />
-              </div>
-
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <Label className="text-gray-300">수출국</Label>
-                  <Select
-                    value={vehicleInfo.buyerCountry}
-                    onValueChange={(value) => handleVehicleInfoChange("buyerCountry", value)}
-                  >
-                    <SelectTrigger className="bg-gray-800/50 border-gray-600 text-white">
-                      <SelectValue placeholder="국가 선택" />
-                    </SelectTrigger>
-                    <SelectContent className="bg-gray-800 border-gray-700">
-                      <SelectItem value="UAE" className="text-white hover:bg-gray-700">
-                        UAE
-                      </SelectItem>
-                      <SelectItem value="러시아" className="text-white hover:bg-gray-700">
-                        러시아
-                      </SelectItem>
-                      <SelectItem value="몽골" className="text-white hover:bg-gray-700">
-                        몽골
-                      </SelectItem>
-                      <SelectItem value="우즈베키스탄" className="text-white hover:bg-gray-700">
-                        우즈베키스탄
-                      </SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div>
-                  <Label className="text-gray-300">FOB 가격</Label>
-                  <div className="flex">
+            </CardContent>
+          </Card>
+        ) : (
+          <form onSubmit={handleSubmit} className="space-y-8">
+            {/* 차량 정보 */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center">
+                  <Car className="w-5 h-5 mr-2 text-blue-600" />
+                  차량 정보
+                </CardTitle>
+                <CardDescription>수출할 차량의 기본 정보를 입력하세요</CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="grid md:grid-cols-2 gap-4">
+                  <div>
+                    <Label htmlFor="chassisNumber">차대번호 *</Label>
                     <Input
-                      value={vehicleInfo.fobPrice}
-                      onChange={(e) => handleVehicleInfoChange("fobPrice", e.target.value)}
-                      placeholder="15000"
-                      className="bg-gray-800/50 border-gray-600 text-white placeholder-gray-400 rounded-r-none"
+                      id="chassisNumber"
+                      value={formData.chassisNumber}
+                      onChange={(e) => handleInputChange("chassisNumber", e.target.value)}
+                      placeholder="KMHD141GPMA123456"
+                      required
                     />
-                    <Select
-                      value={vehicleInfo.currency}
-                      onValueChange={(value) => handleVehicleInfoChange("currency", value)}
-                    >
-                      <SelectTrigger className="w-20 bg-gray-800/50 border-gray-600 text-white rounded-l-none border-l-0">
-                        <SelectValue />
+                  </div>
+                  <div>
+                    <Label htmlFor="vehicleNumber">차량번호 *</Label>
+                    <Input
+                      id="vehicleNumber"
+                      value={formData.vehicleNumber}
+                      onChange={(e) => handleInputChange("vehicleNumber", e.target.value)}
+                      placeholder="12가3456"
+                      required
+                    />
+                  </div>
+                </div>
+                <div className="grid md:grid-cols-3 gap-4">
+                  <div>
+                    <Label htmlFor="modelName">모델명 *</Label>
+                    <Input
+                      id="modelName"
+                      value={formData.modelName}
+                      onChange={(e) => handleInputChange("modelName", e.target.value)}
+                      placeholder="현대 소나타"
+                      required
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="year">연식 *</Label>
+                    <Input
+                      id="year"
+                      type="number"
+                      value={formData.year}
+                      onChange={(e) => handleInputChange("year", e.target.value)}
+                      placeholder="2020"
+                      required
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="fuel">연료 *</Label>
+                    <Select onValueChange={(value) => handleInputChange("fuel", value)}>
+                      <SelectTrigger>
+                        <SelectValue placeholder="연료 선택" />
                       </SelectTrigger>
-                      <SelectContent className="bg-gray-800 border-gray-700">
-                        <SelectItem value="USD" className="text-white hover:bg-gray-700">
-                          USD
-                        </SelectItem>
-                        <SelectItem value="EUR" className="text-white hover:bg-gray-700">
-                          EUR
-                        </SelectItem>
-                        <SelectItem value="KRW" className="text-white hover:bg-gray-700">
-                          KRW
-                        </SelectItem>
+                      <SelectContent>
+                        <SelectItem value="가솔린">가솔린</SelectItem>
+                        <SelectItem value="디젤">디젤</SelectItem>
+                        <SelectItem value="하이브리드">하이브리드</SelectItem>
+                        <SelectItem value="전기">전기</SelectItem>
                       </SelectContent>
                     </Select>
                   </div>
                 </div>
-              </div>
-            </CardContent>
-          </Card>
+                <div>
+                  <Label htmlFor="vin">VIN 번호</Label>
+                  <Input
+                    id="vin"
+                    value={formData.vin}
+                    onChange={(e) => handleInputChange("vin", e.target.value)}
+                    placeholder="17자리 VIN 번호"
+                  />
+                </div>
+              </CardContent>
+            </Card>
 
-          {/* Document Management */}
-          <Card className="bg-gradient-to-br from-gray-900/80 to-gray-800/50 border-gray-700/50 backdrop-blur-sm">
-            <CardHeader>
-              <CardTitle className="flex items-center space-x-2 text-[#00D4AA]">
-                <FileText className="w-5 h-5" />
-                <span>서류 관리</span>
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              {/* File Upload Buttons */}
-              <div className="grid grid-cols-2 gap-3">
-                <Button
-                  onClick={() => handleFileUpload("차량등록증")}
-                  variant="outline"
-                  className="border-gray-600 text-gray-300 hover:bg-gray-700 bg-transparent"
-                >
-                  <Upload className="w-4 h-4 mr-2" />
-                  등록증
-                </Button>
-                <Button
-                  onClick={() => handleFileUpload("인보이스")}
-                  variant="outline"
-                  className="border-gray-600 text-gray-300 hover:bg-gray-700 bg-transparent"
-                >
-                  <Upload className="w-4 h-4 mr-2" />
-                  인보이스
-                </Button>
-                <Button
-                  onClick={() => handleFileUpload("말소증명서")}
-                  variant="outline"
-                  className="border-gray-600 text-gray-300 hover:bg-gray-700 bg-transparent"
-                >
-                  <Upload className="w-4 h-4 mr-2" />
-                  말소증
-                </Button>
-                <Button
-                  onClick={() => handleFileUpload("B/L")}
-                  variant="outline"
-                  className="border-gray-600 text-gray-300 hover:bg-gray-700 bg-transparent"
-                >
-                  <Upload className="w-4 h-4 mr-2" />
-                  B/L
-                </Button>
-              </div>
+            {/* 계약 정보 */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center">
+                  <User className="w-5 h-5 mr-2 text-green-600" />
+                  계약 정보
+                </CardTitle>
+                <CardDescription>바이어 및 계약 조건을 입력하세요</CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="grid md:grid-cols-2 gap-4">
+                  <div>
+                    <Label htmlFor="buyerName">바이어명 *</Label>
+                    <Input
+                      id="buyerName"
+                      value={formData.buyerName}
+                      onChange={(e) => handleInputChange("buyerName", e.target.value)}
+                      placeholder="Ahmed Hassan"
+                      required
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="contractDate">계약일 *</Label>
+                    <Input
+                      id="contractDate"
+                      type="date"
+                      value={formData.contractDate}
+                      onChange={(e) => handleInputChange("contractDate", e.target.value)}
+                      required
+                    />
+                  </div>
+                </div>
+                <div className="grid md:grid-cols-3 gap-4">
+                  <div>
+                    <Label htmlFor="exportCountry">수출국 *</Label>
+                    <Select onValueChange={(value) => handleInputChange("exportCountry", value)}>
+                      <SelectTrigger>
+                        <SelectValue placeholder="수출국 선택" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="이집트">이집트</SelectItem>
+                        <SelectItem value="러시아">러시아</SelectItem>
+                        <SelectItem value="몽골">몽골</SelectItem>
+                        <SelectItem value="우즈베키스탄">우즈베키스탄</SelectItem>
+                        <SelectItem value="카자흐스탄">카자흐스탄</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div>
+                    <Label htmlFor="fobPrice">FOB 가격 *</Label>
+                    <Input
+                      id="fobPrice"
+                      type="number"
+                      value={formData.fobPrice}
+                      onChange={(e) => handleInputChange("fobPrice", e.target.value)}
+                      placeholder="15000"
+                      required
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="currency">통화 *</Label>
+                    <Select value={formData.currency} onValueChange={(value) => handleInputChange("currency", value)}>
+                      <SelectTrigger>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="USD">USD</SelectItem>
+                        <SelectItem value="EUR">EUR</SelectItem>
+                        <SelectItem value="JPY">JPY</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
 
-              <Separator className="bg-gray-700" />
+            {/* 수출 조건 */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center">
+                  <Ship className="w-5 h-5 mr-2 text-purple-600" />
+                  수출 조건
+                </CardTitle>
+                <CardDescription>컨테이너 및 배송 조건을 설정하세요</CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="grid md:grid-cols-3 gap-4">
+                  <div>
+                    <Label htmlFor="containerType">컨테이너 종류 *</Label>
+                    <Select onValueChange={(value) => handleInputChange("containerType", value)}>
+                      <SelectTrigger>
+                        <SelectValue placeholder="컨테이너 선택" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="20ft">20ft 일반</SelectItem>
+                        <SelectItem value="40ft">40ft 일반</SelectItem>
+                        <SelectItem value="40ft HC">40ft HC</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div>
+                    <Label htmlFor="departureDate">출항예정일 *</Label>
+                    <Input
+                      id="departureDate"
+                      type="date"
+                      value={formData.departureDate}
+                      onChange={(e) => handleInputChange("departureDate", e.target.value)}
+                      required
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="shoringCompany">쇼링업체</Label>
+                    <Select onValueChange={(value) => handleInputChange("shoringCompany", value)}>
+                      <SelectTrigger>
+                        <SelectValue placeholder="쇼링업체 선택" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="㈜디오로지스">㈜디오로지스</SelectItem>
+                        <SelectItem value="인천항만쇼링">인천항만쇼링</SelectItem>
+                        <SelectItem value="부산쇼링센터">부산쇼링센터</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
 
-              {/* Uploaded Files */}
-              <div className="space-y-2">
-                <h4 className="font-medium text-white">업로드된 파일</h4>
-                {uploadedFiles.length === 0 ? (
-                  <p className="text-gray-400 text-sm">업로드된 파일이 없습니다.</p>
-                ) : (
-                  uploadedFiles.map((file, index) => (
-                    <div
-                      key={index}
-                      className="flex items-center justify-between p-3 bg-gray-800/30 rounded-lg border border-gray-700/50"
-                    >
-                      <div className="flex items-center space-x-3">
-                        <FileText className="w-4 h-4 text-blue-400" />
-                        <div>
-                          <p className="text-white text-sm font-medium">{file.name}</p>
-                          <p className="text-gray-400 text-xs">
-                            {file.type} • {file.size} • {file.uploadDate}
-                          </p>
-                        </div>
-                      </div>
-                      <div className="flex space-x-2">
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          className="border-gray-600 text-gray-300 hover:bg-gray-700 bg-transparent"
-                        >
-                          <Download className="w-3 h-3" />
-                        </Button>
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          onClick={() => setUploadedFiles((prev) => prev.filter((_, i) => i !== index))}
-                          className="border-gray-600 text-gray-300 hover:bg-gray-700 bg-transparent"
-                        >
-                          <X className="w-3 h-3" />
-                        </Button>
-                      </div>
+            {/* 파일 첨부 */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center">
+                  <Upload className="w-5 h-5 mr-2 text-orange-600" />
+                  파일 첨부
+                </CardTitle>
+                <CardDescription>필요한 서류들을 업로드하세요</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="grid md:grid-cols-2 gap-6">
+                  <div>
+                    <Label className="text-sm font-medium mb-2 block">📄 등록증</Label>
+                    <div className="border-2 border-dashed border-gray-300 rounded-lg p-4 text-center">
+                      <input
+                        type="file"
+                        accept=".jpg,.jpeg,.png,.pdf"
+                        onChange={(e) => handleFileUpload("registration", e)}
+                        className="hidden"
+                        id="registration"
+                      />
+                      <label htmlFor="registration" className="cursor-pointer">
+                        <Upload className="h-6 w-6 text-gray-400 mx-auto mb-2" />
+                        <p className="text-sm text-gray-600">파일 선택</p>
+                      </label>
                     </div>
-                  ))
-                )}
-              </div>
-
-              <Separator className="bg-gray-700" />
-
-              {/* Action Button */}
-              <Button
-                onClick={completeCurrentStep}
-                disabled={currentStep >= processSteps.length - 1 && processSteps[currentStep]?.status === "completed"}
-                className="w-full bg-[#00D4AA] hover:bg-[#00B894] text-black"
-              >
-                {currentStep >= processSteps.length - 1 && processSteps[currentStep]?.status === "completed" ? (
-                  <>
-                    <CheckCircle className="w-4 h-4 mr-2" />
-                    모든 단계 완료
-                  </>
-                ) : (
-                  <>
-                    <Send className="w-4 h-4 mr-2" />
-                    {processSteps[currentStep]?.title} 완료
-                  </>
-                )}
-              </Button>
-            </CardContent>
-          </Card>
-        </div>
-
-        {/* Simulation Results */}
-        {showSimulation && (
-          <Card className="bg-gradient-to-br from-gray-900/80 to-gray-800/50 border-gray-700/50 backdrop-blur-sm mt-8">
-            <CardHeader>
-              <CardTitle className="flex items-center space-x-2 text-green-400">
-                <CheckCircle className="w-5 h-5" />
-                <span>시뮬레이션 완료</span>
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="bg-green-500/10 border border-green-500/20 rounded-lg p-6">
-                <div className="text-center space-y-4">
-                  <div className="text-4xl">🎉</div>
-                  <h3 className="text-xl font-bold text-white">수출 프로세스 완료!</h3>
-                  <p className="text-gray-300">
-                    {vehicleInfo.modelName} ({vehicleInfo.vehicleNumber})이(가) {vehicleInfo.buyerCountry}의{" "}
-                    {vehicleInfo.buyerName}님에게 성공적으로 수출되었습니다.
-                  </p>
-                  <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mt-6">
-                    <div className="text-center">
-                      <div className="text-2xl font-bold text-[#00D4AA]">{processSteps.length}</div>
-                      <div className="text-sm text-gray-400">완료된 단계</div>
+                  </div>
+                  <div>
+                    <Label className="text-sm font-medium mb-2 block">📸 차량 사진</Label>
+                    <div className="border-2 border-dashed border-gray-300 rounded-lg p-4 text-center">
+                      <input
+                        type="file"
+                        accept=".jpg,.jpeg,.png"
+                        onChange={(e) => handleFileUpload("photos", e)}
+                        className="hidden"
+                        id="photos"
+                      />
+                      <label htmlFor="photos" className="cursor-pointer">
+                        <Upload className="h-6 w-6 text-gray-400 mx-auto mb-2" />
+                        <p className="text-sm text-gray-600">파일 선택</p>
+                      </label>
                     </div>
-                    <div className="text-center">
-                      <div className="text-2xl font-bold text-blue-400">{uploadedFiles.length}</div>
-                      <div className="text-sm text-gray-400">처리된 서류</div>
+                  </div>
+                  <div>
+                    <Label className="text-sm font-medium mb-2 block">🏦 통장사본</Label>
+                    <div className="border-2 border-dashed border-gray-300 rounded-lg p-4 text-center">
+                      <input
+                        type="file"
+                        accept=".jpg,.jpeg,.png,.pdf"
+                        onChange={(e) => handleFileUpload("bankAccount", e)}
+                        className="hidden"
+                        id="bankAccount"
+                      />
+                      <label htmlFor="bankAccount" className="cursor-pointer">
+                        <Upload className="h-6 w-6 text-gray-400 mx-auto mb-2" />
+                        <p className="text-sm text-gray-600">파일 선택</p>
+                      </label>
                     </div>
-                    <div className="text-center">
-                      <div className="text-2xl font-bold text-green-400">
-                        {vehicleInfo.fobPrice} {vehicleInfo.currency}
-                      </div>
-                      <div className="text-sm text-gray-400">FOB 가격</div>
-                    </div>
-                    <div className="text-center">
-                      <div className="text-2xl font-bold text-purple-400">30</div>
-                      <div className="text-sm text-gray-400">소요 일수</div>
+                  </div>
+                  <div>
+                    <Label className="text-sm font-medium mb-2 block">🏢 인보이스용 로고</Label>
+                    <div className="border-2 border-dashed border-gray-300 rounded-lg p-4 text-center">
+                      <input
+                        type="file"
+                        accept=".jpg,.jpeg,.png"
+                        onChange={(e) => handleFileUpload("logo", e)}
+                        className="hidden"
+                        id="logo"
+                      />
+                      <label htmlFor="logo" className="cursor-pointer">
+                        <Upload className="h-6 w-6 text-gray-400 mx-auto mb-2" />
+                        <p className="text-sm text-gray-600">파일 선택</p>
+                      </label>
                     </div>
                   </div>
                 </div>
-              </div>
-            </CardContent>
-          </Card>
+              </CardContent>
+            </Card>
+
+            {/* 추가 정보 */}
+            <Card>
+              <CardHeader>
+                <CardTitle>추가 정보</CardTitle>
+                <CardDescription>특별한 요청사항이나 메모를 입력하세요</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <Textarea
+                  value={formData.notes}
+                  onChange={(e) => handleInputChange("notes", e.target.value)}
+                  placeholder="특별 요청사항, 배송 주의사항 등을 입력하세요..."
+                  rows={4}
+                />
+              </CardContent>
+            </Card>
+
+            {/* 제출 버튼 */}
+            <div className="text-center">
+              <Button type="submit" size="lg" className="bg-blue-600 hover:bg-blue-700 px-12 py-4 text-lg">
+                <Package className="w-5 h-5 mr-2" />
+                통합정보 등록 완료
+              </Button>
+            </div>
+          </form>
         )}
       </div>
     </div>
