@@ -1,770 +1,589 @@
 "use client"
 
 import { useState } from "react"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
-import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { Textarea } from "@/components/ui/textarea"
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import {
   FileText,
-  Clock,
-  CheckCircle,
-  Search,
-  DollarSign,
-  Eye,
   Download,
-  Bell,
-  X,
-  Edit,
-  AlertTriangle,
-  Stamp,
+  CheckCircle,
+  Clock,
+  AlertCircle,
+  FileCheck,
+  User,
+  Calendar,
+  BarChart3,
+  LogOut,
+  Building,
+  Send,
 } from "lucide-react"
-import Image from "next/image"
+import Link from "next/link"
+import { Label } from "@/components/ui/label"
+import { Input } from "@/components/ui/input"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 
-interface CustomsDocument {
+interface Vehicle {
   id: string
-  exportId: string
-  vehicleModel: string
-  exporter: string
-  status: "대기중" | "검토중" | "승인" | "반려" | "수정요청"
-  submittedDate: string
-  reviewDate?: string
-  approvalDate?: string
-  documents: string[]
-  customsValue: number
-  tariffCode: string
-  priority: "높음" | "보통" | "낮음"
-  reviewNotes?: string
-  rejectionReason?: string
+  vehicleNumber: string
+  vehicleType: string
+  buyerName: string
+  buyerCountry: string
+  cancellationDate: string
+  status: "말소완료" | "면장완료" | "대기" | "작성중" | "제출완료"
 }
 
-interface ReviewFormData {
-  reviewNotes: string
-  customsValue: string
-  tariffCode: string
-  additionalDocuments: string[]
-  decision: "approve" | "reject" | "request_modification"
-  rejectionReason: string
+interface DocumentResult {
+  vehicleId: string
+  documentNumber: string
+  productName: string
+  exportCondition: string
+  issuedDate: string
+  status: "요청" | "완료" | "보류" | "실패"
+  processedTime?: string
+  processor?: string
 }
 
 export default function CustomsDashboard() {
-  const [searchTerm, setSearchTerm] = useState("")
-  const [filterStatus, setFilterStatus] = useState<string>("all")
-  const [notifications, setNotifications] = useState(5)
-  const [message, setMessage] = useState("")
-  const [showReviewForm, setShowReviewForm] = useState(false)
-  const [selectedDocument, setSelectedDocument] = useState<CustomsDocument | null>(null)
-  const [reviewFormData, setReviewFormData] = useState<ReviewFormData>({
-    reviewNotes: "",
-    customsValue: "",
-    tariffCode: "",
-    additionalDocuments: [],
-    decision: "approve",
-    rejectionReason: "",
-  })
-
-  const [customsDocuments, setCustomsDocuments] = useState<CustomsDocument[]>([
+  const [vehicles] = useState<Vehicle[]>([
     {
-      id: "CUS001",
-      exportId: "EXP001",
-      vehicleModel: "현대 아반떼 2020",
-      exporter: "글로벌모터스",
-      status: "검토중",
-      submittedDate: "2024-01-15",
-      documents: ["수출신고서", "차량등록증", "매매계약서"],
-      customsValue: 15000,
-      tariffCode: "8703.23.00",
-      priority: "높음",
+      id: "V001",
+      vehicleNumber: "12가3456",
+      vehicleType: "현대 소나타",
+      buyerName: "Ahmed Hassan",
+      buyerCountry: "이집트",
+      cancellationDate: "2024-01-15",
+      status: "말소완료",
     },
     {
-      id: "CUS002",
-      exportId: "EXP002",
-      vehicleModel: "기아 쏘렌토 2019",
-      exporter: "코리아오토",
-      status: "승인",
-      submittedDate: "2024-01-10",
-      reviewDate: "2024-01-12",
-      approvalDate: "2024-01-12",
-      documents: ["수출신고서", "차량등록증", "매매계약서", "검사증명서"],
-      customsValue: 22000,
-      tariffCode: "8703.24.00",
-      priority: "보통",
-      reviewNotes: "모든 서류가 완비되어 승인 처리합니다.",
+      id: "V002",
+      vehicleNumber: "34나5678",
+      vehicleType: "기아 스포티지",
+      buyerName: "Vladimir Petrov",
+      buyerCountry: "러시아",
+      cancellationDate: "2024-01-14",
+      status: "말소완료",
     },
     {
-      id: "CUS003",
-      exportId: "EXP003",
-      vehicleModel: "현대 투싼 2021",
-      exporter: "아시아모터스",
-      status: "대기중",
-      submittedDate: "2024-01-20",
-      documents: ["수출신고서", "차량등록증"],
-      customsValue: 18500,
-      tariffCode: "8703.23.00",
-      priority: "보통",
-    },
-    {
-      id: "CUS004",
-      exportId: "EXP004",
-      vehicleModel: "기아 카니발 2022",
-      exporter: "익스포트킹",
-      status: "반려",
-      submittedDate: "2024-01-18",
-      reviewDate: "2024-01-19",
-      documents: ["수출신고서"],
-      customsValue: 25000,
-      tariffCode: "8703.21.00",
-      priority: "높음",
-      rejectionReason: "차량등록증 및 매매계약서가 누락되었습니다. 필요 서류를 보완하여 재신청해주세요.",
+      id: "V003",
+      vehicleNumber: "78라1234",
+      vehicleType: "토요타 캠리",
+      buyerName: "Rustam Karimov",
+      buyerCountry: "우즈베키스탄",
+      cancellationDate: "2024-01-12",
+      status: "말소완료",
     },
   ])
 
-  const handleStartReview = (document: CustomsDocument) => {
-    setSelectedDocument(document)
-    setReviewFormData({
-      reviewNotes: document.reviewNotes || "",
-      customsValue: document.customsValue.toString(),
-      tariffCode: document.tariffCode,
-      additionalDocuments: [],
-      decision: "approve",
-      rejectionReason: document.rejectionReason || "",
-    })
-    setShowReviewForm(true)
-  }
+  const shoringCompanies = [
+    { id: "S001", name: "㈜디오로지스", contact: "박쇼링" },
+    { id: "S002", name: "인천항만쇼링", contact: "최적재" },
+    { id: "S003", name: "부산쇼링센터", contact: "김컨테이너" },
+  ]
 
-  const handleSubmitReview = () => {
-    if (!selectedDocument) return
-
-    let newStatus: CustomsDocument["status"] = "승인"
-    const reviewDate = new Date().toISOString().split("T")[0]
-    let approvalDate: string | undefined
-
-    switch (reviewFormData.decision) {
-      case "approve":
-        newStatus = "승인"
-        approvalDate = reviewDate
-        break
-      case "reject":
-        newStatus = "반려"
-        break
-      case "request_modification":
-        newStatus = "수정요청"
-        break
-    }
-
-    setCustomsDocuments((prev) =>
-      prev.map((doc) =>
-        doc.id === selectedDocument.id
-          ? {
-              ...doc,
-              status: newStatus,
-              reviewDate,
-              approvalDate,
-              reviewNotes: reviewFormData.reviewNotes,
-              rejectionReason: reviewFormData.rejectionReason,
-              customsValue: Number.parseFloat(reviewFormData.customsValue),
-              tariffCode: reviewFormData.tariffCode,
-            }
-          : doc,
-      ),
-    )
-
-    setShowReviewForm(false)
-    setSelectedDocument(null)
-
-    const statusMessages = {
-      approve: "승인 처리가 완료되었습니다.",
-      reject: "반려 처리가 완료되었습니다.",
-      request_modification: "수정 요청이 전달되었습니다.",
-    }
-
-    setMessage(statusMessages[reviewFormData.decision])
-    setTimeout(() => setMessage(""), 3000)
-  }
-
-  const handleBulkApprove = () => {
-    const pendingDocs = customsDocuments.filter((doc) => doc.status === "대기중" || doc.status === "검토중")
-
-    setCustomsDocuments((prev) =>
-      prev.map((doc) =>
-        doc.status === "대기중" || doc.status === "검토중"
-          ? {
-              ...doc,
-              status: "승인",
-              reviewDate: new Date().toISOString().split("T")[0],
-              approvalDate: new Date().toISOString().split("T")[0],
-              reviewNotes: "일괄 승인 처리",
-            }
-          : doc,
-      ),
-    )
-
-    setMessage(`${pendingDocs.length}건의 서류가 일괄 승인되었습니다.`)
-    setTimeout(() => setMessage(""), 3000)
-  }
-
-  const handleDownloadCertificate = (document: CustomsDocument) => {
-    // 승인증 다운로드 시뮬레이션
-    const canvas = document.createElement("canvas")
-    const ctx = canvas.getContext("2d")
-    if (!ctx) return
-
-    canvas.width = 800
-    canvas.height = 600
-
-    // 배경
-    ctx.fillStyle = "#ffffff"
-    ctx.fillRect(0, 0, canvas.width, canvas.height)
-
-    // 테두리
-    ctx.strokeStyle = "#000000"
-    ctx.lineWidth = 3
-    ctx.strokeRect(20, 20, canvas.width - 40, canvas.height - 40)
-
-    // 제목
-    ctx.fillStyle = "#000000"
-    ctx.font = "bold 32px Arial"
-    ctx.textAlign = "center"
-    ctx.fillText("수출승인증", canvas.width / 2, 80)
-
-    // 내용
-    ctx.font = "18px Arial"
-    ctx.textAlign = "left"
-    ctx.fillText(`승인번호: ${document.id}`, 60, 150)
-    ctx.fillText(`수출업체: ${document.exporter}`, 60, 180)
-    ctx.fillText(`차량모델: ${document.vehicleModel}`, 60, 210)
-    ctx.fillText(`신고가액: $${document.customsValue.toLocaleString()}`, 60, 240)
-    ctx.fillText(`HS코드: ${document.tariffCode}`, 60, 270)
-    ctx.fillText(`승인일자: ${document.approvalDate}`, 60, 300)
-
-    // 승인 도장
-    ctx.fillStyle = "#ff0000"
-    ctx.font = "bold 24px Arial"
-    ctx.textAlign = "center"
-    ctx.fillText("승인", canvas.width - 150, 200)
-
-    // 서명
-    ctx.fillStyle = "#000000"
-    ctx.font = "16px Arial"
-    ctx.textAlign = "right"
-    ctx.fillText("관세사: 김관세", canvas.width - 60, 450)
-    ctx.fillText(`발급일: ${new Date().toLocaleDateString("ko-KR")}`, canvas.width - 60, 480)
-
-    canvas.toBlob((blob) => {
-      if (blob) {
-        const url = URL.createObjectURL(blob)
-        const a = document.createElement("a")
-        a.href = url
-        a.download = `수출승인증_${document.id}.png`
-        document.body.appendChild(a)
-        a.click()
-        document.body.removeChild(a)
-        URL.revokeObjectURL(url)
-        setMessage("수출승인증이 다운로드되었습니다.")
-        setTimeout(() => setMessage(""), 3000)
-      }
-    }, "image/png")
-  }
-
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case "승인":
-        return "bg-green-500/20 text-green-400 border-green-500/30"
-      case "검토중":
-        return "bg-blue-500/20 text-blue-400 border-blue-500/30"
-      case "대기중":
-        return "bg-yellow-500/20 text-yellow-400 border-yellow-500/30"
-      case "반려":
-        return "bg-red-500/20 text-red-400 border-red-500/30"
-      case "수정요청":
-        return "bg-orange-500/20 text-orange-400 border-orange-500/30"
-      default:
-        return "bg-gray-500/20 text-gray-400 border-gray-500/30"
-    }
-  }
-
-  const getPriorityColor = (priority: string) => {
-    switch (priority) {
-      case "높음":
-        return "bg-red-500/20 text-red-400 border-red-500/30"
-      case "보통":
-        return "bg-yellow-500/20 text-yellow-400 border-yellow-500/30"
-      case "낮음":
-        return "bg-green-500/20 text-green-400 border-green-500/30"
-      default:
-        return "bg-gray-500/20 text-gray-400 border-gray-500/30"
-    }
-  }
-
-  const filteredDocuments = customsDocuments.filter((doc) => {
-    const matchesSearch =
-      doc.vehicleModel.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      doc.exporter.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      doc.id.toLowerCase().includes(searchTerm.toLowerCase())
-    const matchesFilter = filterStatus === "all" || doc.status === filterStatus
-    return matchesSearch && matchesFilter
+  const [selectedVehicle, setSelectedVehicle] = useState<Vehicle | null>(null)
+  const [documentResult, setDocumentResult] = useState<DocumentResult | null>(null)
+  const [message, setMessage] = useState<string>("")
+  const [isGenerating, setIsGenerating] = useState(false)
+  const [selectedShoring, setSelectedShoring] = useState("")
+  const [editingDocument, setEditingDocument] = useState<string | null>(null)
+  const [editDocumentData, setEditDocumentData] = useState({
+    documentNumber: "",
+    productName: "",
+    exportCondition: "",
   })
 
-  const pendingReviews = customsDocuments.filter((d) => d.status === "검토중" || d.status === "대기중").length
-  const approvedToday = customsDocuments.filter((d) => d.status === "승인").length
-  const totalValue = customsDocuments.reduce((sum, doc) => sum + doc.customsValue, 0)
-  const rejectedCount = customsDocuments.filter((d) => d.status === "반려").length
+  // 상태별 통계 (더미 데이터)
+  const statusStats = {
+    processing: 2, // 작성 중
+    completed: 5, // 제출 완료
+    waiting: 1, // 대기 중
+  }
 
-  // 검토 폼 렌더링
-  if (showReviewForm && selectedDocument) {
-    return (
-      <div className="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-        <div className="bg-gray-900 border border-gray-800 rounded-xl max-w-4xl w-full max-h-[90vh] overflow-y-auto">
-          <div className="sticky top-0 bg-gray-900 border-b border-gray-800 p-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <h2 className="text-2xl font-bold text-white">관세 서류 검토</h2>
-                <p className="text-gray-400">
-                  {selectedDocument.vehicleModel} - {selectedDocument.exporter}
-                </p>
-              </div>
-              <Button
-                variant="outline"
-                onClick={() => {
-                  setShowReviewForm(false)
-                  setSelectedDocument(null)
-                }}
-                className="bg-gray-800 border-gray-700 text-gray-300 hover:bg-gray-700"
-              >
-                <X className="w-4 h-4 mr-2" />
-                닫기
-              </Button>
-            </div>
-          </div>
+  const handleGenerateDocuments = (vehicle: Vehicle) => {
+    setSelectedVehicle(vehicle)
+    setIsGenerating(true)
 
-          <div className="p-6 space-y-6">
-            {/* 서류 정보 */}
-            <Card className="bg-gray-800 border-gray-700">
-              <CardHeader>
-                <CardTitle className="text-white">제출된 서류 정보</CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <Label className="text-gray-300">서류 ID</Label>
-                    <Input
-                      value={selectedDocument.id}
-                      disabled
-                      className="bg-gray-700/50 border-gray-600 text-gray-400"
-                    />
-                  </div>
-                  <div>
-                    <Label className="text-gray-300">제출일</Label>
-                    <Input
-                      value={selectedDocument.submittedDate}
-                      disabled
-                      className="bg-gray-700/50 border-gray-600 text-gray-400"
-                    />
-                  </div>
-                </div>
+    // 문서 생성 시뮬레이션 (2초 후 완료)
+    setTimeout(() => {
+      const currentTime = new Date().toLocaleString("ko-KR")
+      const documentNumber = `DOC${Date.now().toString().slice(-6)}`
 
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <Label className="text-gray-300">수출업체</Label>
-                    <Input
-                      value={selectedDocument.exporter}
-                      disabled
-                      className="bg-gray-700/50 border-gray-600 text-gray-400"
-                    />
-                  </div>
-                  <div>
-                    <Label className="text-gray-300">차량모델</Label>
-                    <Input
-                      value={selectedDocument.vehicleModel}
-                      disabled
-                      className="bg-gray-700/50 border-gray-600 text-gray-400"
-                    />
-                  </div>
-                </div>
+      setDocumentResult({
+        vehicleId: vehicle.id,
+        documentNumber,
+        productName: vehicle.vehicleType,
+        exportCondition: `FOB ${vehicle.buyerCountry}`,
+        issuedDate: currentTime.split(" ")[0],
+        status: "완료",
+        processedTime: currentTime,
+        processor: "customs_id:2",
+      })
 
-                <div>
-                  <Label className="text-gray-300">제출된 서류</Label>
-                  <div className="flex flex-wrap gap-2 mt-2">
-                    {selectedDocument.documents.map((doc, index) => (
-                      <Badge key={index} variant="outline" className="border-gray-600 text-gray-300">
-                        {doc}
-                      </Badge>
-                    ))}
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
+      setIsGenerating(false)
+      setMessage(`${vehicle.vehicleNumber} 차량의 면장이 성공적으로 생성되었습니다.`)
+      setTimeout(() => setMessage(""), 3000)
+    }, 2000)
+  }
 
-            {/* 검토 내용 */}
-            <Card className="bg-gray-800 border-gray-700">
-              <CardHeader>
-                <CardTitle className="text-white">검토 및 승인</CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <Label className="text-gray-300">신고가액 (USD)</Label>
-                    <Input
-                      value={reviewFormData.customsValue}
-                      onChange={(e) => setReviewFormData((prev) => ({ ...prev, customsValue: e.target.value }))}
-                      className="bg-gray-700 border-gray-600 text-white"
-                    />
-                  </div>
-                  <div>
-                    <Label className="text-gray-300">HS 코드</Label>
-                    <Input
-                      value={reviewFormData.tariffCode}
-                      onChange={(e) => setReviewFormData((prev) => ({ ...prev, tariffCode: e.target.value }))}
-                      className="bg-gray-700 border-gray-600 text-white"
-                    />
-                  </div>
-                </div>
+  const handleDownloadDocument = () => {
+    if (!documentResult) return
 
-                <div>
-                  <Label className="text-gray-300">검토 의견</Label>
-                  <Textarea
-                    value={reviewFormData.reviewNotes}
-                    onChange={(e) => setReviewFormData((prev) => ({ ...prev, reviewNotes: e.target.value }))}
-                    placeholder="검토 의견을 입력하세요..."
-                    className="bg-gray-700 border-gray-600 text-white placeholder:text-gray-400"
-                    rows={4}
-                  />
-                </div>
+    // 더미 다운로드 시뮬레이션
+    setMessage("면장 문서가 다운로드되었습니다.")
+    setTimeout(() => setMessage(""), 3000)
+  }
 
-                <div>
-                  <Label className="text-gray-300">처리 결정</Label>
-                  <Select
-                    value={reviewFormData.decision}
-                    onValueChange={(value: "approve" | "reject" | "request_modification") =>
-                      setReviewFormData((prev) => ({ ...prev, decision: value }))
-                    }
-                  >
-                    <SelectTrigger className="bg-gray-700 border-gray-600 text-white">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent className="bg-gray-800 border-gray-700">
-                      <SelectItem value="approve" className="text-white hover:bg-gray-700">
-                        승인
-                      </SelectItem>
-                      <SelectItem value="request_modification" className="text-white hover:bg-gray-700">
-                        수정 요청
-                      </SelectItem>
-                      <SelectItem value="reject" className="text-white hover:bg-gray-700">
-                        반려
-                      </SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
+  const changeDocumentStatus = (newStatus: DocumentResult["status"]) => {
+    if (!documentResult) return
 
-                {(reviewFormData.decision === "reject" || reviewFormData.decision === "request_modification") && (
-                  <div>
-                    <Label className="text-gray-300">
-                      {reviewFormData.decision === "reject" ? "반려 사유" : "수정 요청 사항"}
-                    </Label>
-                    <Textarea
-                      value={reviewFormData.rejectionReason}
-                      onChange={(e) => setReviewFormData((prev) => ({ ...prev, rejectionReason: e.target.value }))}
-                      placeholder={
-                        reviewFormData.decision === "reject"
-                          ? "반려 사유를 입력하세요..."
-                          : "수정이 필요한 사항을 입력하세요..."
-                      }
-                      className="bg-gray-700 border-gray-600 text-white placeholder:text-gray-400"
-                      rows={3}
-                    />
-                  </div>
-                )}
-              </CardContent>
-            </Card>
-
-            {/* 처리 버튼 */}
-            <div className="flex justify-end space-x-4">
-              <Button
-                variant="outline"
-                onClick={() => {
-                  setShowReviewForm(false)
-                  setSelectedDocument(null)
-                }}
-                className="bg-gray-800 border-gray-700 text-gray-300 hover:bg-gray-700"
-              >
-                취소
-              </Button>
-              <Button
-                onClick={handleSubmitReview}
-                className={`${
-                  reviewFormData.decision === "approve"
-                    ? "bg-green-500 hover:bg-green-600"
-                    : reviewFormData.decision === "reject"
-                      ? "bg-red-500 hover:bg-red-600"
-                      : "bg-orange-500 hover:bg-orange-600"
-                } text-white`}
-              >
-                {reviewFormData.decision === "approve" && <CheckCircle className="w-4 h-4 mr-2" />}
-                {reviewFormData.decision === "reject" && <X className="w-4 h-4 mr-2" />}
-                {reviewFormData.decision === "request_modification" && <Edit className="w-4 h-4 mr-2" />}
-                {reviewFormData.decision === "approve"
-                  ? "승인 처리"
-                  : reviewFormData.decision === "reject"
-                    ? "반려 처리"
-                    : "수정 요청"}
-              </Button>
-            </div>
-          </div>
-        </div>
-      </div>
+    const currentTime = new Date().toLocaleString("ko-KR")
+    setDocumentResult((prev) =>
+      prev
+        ? {
+            ...prev,
+            status: newStatus,
+            processedTime: currentTime,
+          }
+        : null,
     )
+
+    setMessage(`문서 상태가 "${newStatus}"로 변경되었습니다.`)
+    setTimeout(() => setMessage(""), 3000)
+  }
+
+  const getStatusColor = (status: DocumentResult["status"]) => {
+    switch (status) {
+      case "요청":
+        return "bg-blue-100 text-blue-700"
+      case "완료":
+        return "bg-green-100 text-green-700"
+      case "보류":
+        return "bg-yellow-100 text-yellow-700"
+      case "실패":
+        return "bg-red-100 text-red-700"
+      default:
+        return "bg-gray-100 text-gray-700"
+    }
+  }
+
+  const handleEditDocument = () => {
+    if (!documentResult) return
+
+    setEditDocumentData({
+      documentNumber: documentResult.documentNumber,
+      productName: documentResult.productName,
+      exportCondition: documentResult.exportCondition,
+    })
+    setEditingDocument(documentResult.vehicleId)
+  }
+
+  const handleSaveEdit = () => {
+    if (!documentResult) return
+
+    const currentTime = new Date().toLocaleString("ko-KR")
+    setDocumentResult((prev) =>
+      prev
+        ? {
+            ...prev,
+            documentNumber: editDocumentData.documentNumber,
+            productName: editDocumentData.productName,
+            exportCondition: editDocumentData.exportCondition,
+            processedTime: currentTime,
+          }
+        : null,
+    )
+
+    setEditingDocument(null)
+    setMessage("면장 정보가 수정되었습니다.")
+    setTimeout(() => setMessage(""), 3000)
+  }
+
+  const handleSendToShoring = () => {
+    if (!selectedShoring || !documentResult) return
+
+    const shoringCompany = shoringCompanies.find((c) => c.id === selectedShoring)
+    if (shoringCompany) {
+      setMessage(`${shoringCompany.name}에게 면장 완료 정보가 전달되었습니다.`)
+      setSelectedShoring("")
+      setTimeout(() => setMessage(""), 3000)
+    }
   }
 
   return (
-    <div className="min-h-screen bg-black text-white">
-      {/* Animated Background */}
-      <div className="fixed inset-0 overflow-hidden pointer-events-none">
-        <div className="absolute inset-0 bg-gradient-to-br from-black via-gray-900 to-black"></div>
-        <div className="absolute top-1/3 left-1/3 w-96 h-96 bg-orange-500/5 rounded-full blur-3xl animate-pulse"></div>
-        <div className="absolute bottom-1/3 right-1/3 w-96 h-96 bg-purple-500/5 rounded-full blur-3xl animate-pulse delay-1000"></div>
-      </div>
-
+    <div className="min-h-screen bg-gray-50">
       {/* Header */}
-      <div className="relative border-b border-gray-800 bg-black/80 backdrop-blur-sm sticky top-0 z-50">
+      <header className="bg-white border-b shadow-sm">
         <div className="container mx-auto px-6 py-4">
           <div className="flex items-center justify-between">
             <div className="flex items-center space-x-4">
-              <div className="flex items-center space-x-3">
-                <Image src="/images/logo.png" alt="GlobalCar" width={40} height={40} className="rounded-lg" />
-                <div>
-                  <h1 className="text-2xl font-bold">GlobalCar</h1>
-                  <p className="text-sm text-gray-400">관세사 대시보드</p>
-                </div>
+              <Link href="/" className="text-blue-600 hover:text-blue-700 text-sm">
+                ← 홈으로
+              </Link>
+              <div>
+                <h1 className="text-2xl font-bold text-gray-800">면장 처리 대시보드</h1>
+                <p className="text-sm text-gray-600">관세사 전용 업무 관리 시스템</p>
               </div>
             </div>
             <div className="flex items-center space-x-4">
-              <Button
-                variant="outline"
-                size="sm"
-                className="border-gray-700 text-gray-300 hover:bg-gray-800 bg-transparent"
-              >
-                <Bell className="w-4 h-4 mr-2" />
-                알림 {notifications > 0 && <Badge className="ml-2 bg-red-500">{notifications}</Badge>}
-              </Button>
-              <Button onClick={handleBulkApprove} className="bg-orange-500 hover:bg-orange-600 text-white">
-                <Stamp className="w-4 h-4 mr-2" />
-                일괄 승인
-              </Button>
+              <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200">
+                🧾 관세사 (Customs Broker)
+              </Badge>
+              <Link href="/login">
+                <Button variant="outline" size="sm">
+                  <LogOut className="w-4 h-4 mr-2" />
+                  로그아웃
+                </Button>
+              </Link>
             </div>
           </div>
         </div>
-      </div>
+      </header>
 
-      <div className="relative container mx-auto px-6 py-8">
-        {/* Alert Message */}
+      <div className="container mx-auto px-6 py-8">
+        {/* 알림 배너 */}
         {message && (
-          <Alert className="mb-6 bg-green-500/20 border-green-500/30 text-green-300">
-            <CheckCircle className="h-4 w-4 text-green-400" />
-            <AlertDescription>{message}</AlertDescription>
+          <Alert className="mb-6 bg-green-50 border-green-200">
+            <CheckCircle className="h-4 w-4 text-green-600" />
+            <AlertDescription className="text-green-800">{message}</AlertDescription>
           </Alert>
         )}
 
-        {/* Stats Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-          <Card className="bg-gradient-to-br from-gray-900/80 to-gray-800/50 border-gray-700/50 backdrop-blur-sm">
-            <CardContent className="p-6">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-gray-400 text-sm">검토 대기</p>
-                  <p className="text-2xl font-bold text-orange-500">{pendingReviews}</p>
+        {/* Section 1: 수출신고 상태 모니터링 */}
+        <Card className="mb-8 rounded-xl shadow-md">
+          <CardHeader className="pb-4">
+            <CardTitle className="flex items-center text-lg">
+              <BarChart3 className="w-5 h-5 mr-2 text-blue-600" />
+              수출신고 상태 모니터링
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="pt-0">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+              {/* 작성 중 */}
+              <div className="bg-orange-50 rounded-xl p-6 text-center border border-orange-200">
+                <div className="text-3xl font-bold text-orange-600 mb-2">{statusStats.processing}</div>
+                <div className="text-sm text-orange-700 flex items-center justify-center">
+                  <AlertCircle className="w-4 h-4 mr-1" />
+                  작성 중
                 </div>
-                <Clock className="w-8 h-8 text-orange-500/60" />
               </div>
-            </CardContent>
-          </Card>
 
-          <Card className="bg-gradient-to-br from-gray-900/80 to-gray-800/50 border-gray-700/50 backdrop-blur-sm">
-            <CardContent className="p-6">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-gray-400 text-sm">승인 완료</p>
-                  <p className="text-2xl font-bold text-green-400">{approvedToday}</p>
+              {/* 제출 완료 */}
+              <div className="bg-green-50 rounded-xl p-6 text-center border border-green-200">
+                <div className="text-3xl font-bold text-green-600 mb-2">{statusStats.completed}</div>
+                <div className="text-sm text-green-700 flex items-center justify-center">
+                  <CheckCircle className="w-4 h-4 mr-1" />
+                  제출 완료
                 </div>
-                <CheckCircle className="w-8 h-8 text-green-400/60" />
               </div>
-            </CardContent>
-          </Card>
 
-          <Card className="bg-gradient-to-br from-gray-900/80 to-gray-800/50 border-gray-700/50 backdrop-blur-sm">
-            <CardContent className="p-6">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-gray-400 text-sm">총 신고가액</p>
-                  <p className="text-2xl font-bold text-blue-400">${totalValue.toLocaleString()}</p>
+              {/* 대기 중 */}
+              <div className="bg-gray-50 rounded-xl p-6 text-center border border-gray-200">
+                <div className="text-3xl font-bold text-gray-600 mb-2">{statusStats.waiting}</div>
+                <div className="text-sm text-gray-700 flex items-center justify-center">
+                  <Clock className="w-4 h-4 mr-1" />
+                  대기 중
                 </div>
-                <DollarSign className="w-8 h-8 text-blue-400/60" />
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card className="bg-gradient-to-br from-gray-900/80 to-gray-800/50 border-gray-700/50 backdrop-blur-sm">
-            <CardContent className="p-6">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-gray-400 text-sm">반려 건수</p>
-                  <p className="text-2xl font-bold text-red-400">{rejectedCount}</p>
-                </div>
-                <AlertTriangle className="w-8 h-8 text-red-400/60" />
-              </div>
-            </CardContent>
-          </Card>
-        </div>
-
-        {/* Search and Filter */}
-        <Card className="bg-gradient-to-br from-gray-900/80 to-gray-800/50 border-gray-700/50 backdrop-blur-sm mb-6">
-          <CardContent className="p-6">
-            <div className="flex flex-col md:flex-row gap-4">
-              <div className="flex-1 relative">
-                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
-                <Input
-                  placeholder="차량 모델, 수출업체, 관세 ID로 검색..."
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                  className="pl-10 bg-gray-800/50 border-gray-600 text-white placeholder-gray-400"
-                />
-              </div>
-              <div className="flex gap-2">
-                <Button
-                  variant={filterStatus === "all" ? "default" : "outline"}
-                  onClick={() => setFilterStatus("all")}
-                  className={filterStatus === "all" ? "bg-orange-500 text-white" : "border-gray-600 text-gray-300"}
-                >
-                  전체
-                </Button>
-                <Button
-                  variant={filterStatus === "대기중" ? "default" : "outline"}
-                  onClick={() => setFilterStatus("대기중")}
-                  className={filterStatus === "대기중" ? "bg-yellow-500 text-white" : "border-gray-600 text-gray-300"}
-                >
-                  대기중
-                </Button>
-                <Button
-                  variant={filterStatus === "검토중" ? "default" : "outline"}
-                  onClick={() => setFilterStatus("검토중")}
-                  className={filterStatus === "검토중" ? "bg-blue-500 text-white" : "border-gray-600 text-gray-300"}
-                >
-                  검토중
-                </Button>
-                <Button
-                  variant={filterStatus === "승인" ? "default" : "outline"}
-                  onClick={() => setFilterStatus("승인")}
-                  className={filterStatus === "승인" ? "bg-green-500 text-white" : "border-gray-600 text-gray-300"}
-                >
-                  승인
-                </Button>
               </div>
             </div>
           </CardContent>
         </Card>
 
-        {/* Customs Documents */}
-        <Card className="bg-gradient-to-br from-gray-900/80 to-gray-800/50 border-gray-700/50 backdrop-blur-sm">
-          <CardHeader>
-            <CardTitle className="flex items-center space-x-2 text-orange-500">
-              <FileText className="w-5 h-5" />
-              <span>관세 서류 현황</span>
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-4">
-              {filteredDocuments.map((doc) => (
-                <div
-                  key={doc.id}
-                  className="bg-gray-800/30 rounded-lg p-6 border border-gray-700/50 hover:border-orange-500/30 transition-all duration-300"
-                >
-                  <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
-                    <div className="flex-1">
-                      <div className="flex items-center gap-3 mb-2">
-                        <h3 className="font-semibold text-lg">{doc.vehicleModel}</h3>
-                        <Badge className={getStatusColor(doc.status)}>{doc.status}</Badge>
-                        <Badge className={getPriorityColor(doc.priority)}>{doc.priority}</Badge>
+        {/* 메인 콘텐츠 - 2열 그리드 */}
+        <div className="grid lg:grid-cols-2 gap-8">
+          {/* Section 2: 말소 완료 차량 목록 */}
+          <Card className="rounded-xl shadow-md">
+            <CardHeader className="pb-4">
+              <CardTitle className="text-lg flex items-center">
+                <FileCheck className="w-5 h-5 mr-2 text-blue-600" />
+                말소 완료 차량 목록
+              </CardTitle>
+              <CardDescription>면장 처리가 필요한 차량들입니다 ({vehicles.length}건)</CardDescription>
+            </CardHeader>
+            <CardContent className="px-6 pb-6">
+              <div className="overflow-x-auto">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead className="text-base">차량번호</TableHead>
+                      <TableHead className="text-base">차량</TableHead>
+                      <TableHead className="text-base">바이어명</TableHead>
+                      <TableHead className="text-base">말소일자</TableHead>
+                      <TableHead className="text-base text-center">작업</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {vehicles.map((vehicle) => (
+                      <TableRow key={vehicle.id} className="hover:bg-gray-50">
+                        <TableCell className="font-medium text-base">{vehicle.vehicleNumber}</TableCell>
+                        <TableCell className="text-base">
+                          <div>
+                            <div className="font-medium">{vehicle.vehicleType}</div>
+                          </div>
+                        </TableCell>
+                        <TableCell className="text-base">
+                          <div className="flex items-center">
+                            <User className="w-4 h-4 mr-2 text-gray-400" />
+                            <div>
+                              <div>{vehicle.buyerName}</div>
+                              <div className="text-xs text-gray-500">({vehicle.buyerCountry})</div>
+                            </div>
+                          </div>
+                        </TableCell>
+                        <TableCell className="text-base">
+                          <div className="flex items-center">
+                            <Calendar className="w-4 h-4 mr-2 text-gray-400" />
+                            {vehicle.cancellationDate}
+                          </div>
+                        </TableCell>
+                        <TableCell className="text-center">
+                          <Button
+                            size="sm"
+                            onClick={() => handleGenerateDocuments(vehicle)}
+                            disabled={isGenerating && selectedVehicle?.id === vehicle.id}
+                            className="bg-blue-600 hover:bg-blue-700 text-white"
+                          >
+                            {isGenerating && selectedVehicle?.id === vehicle.id ? (
+                              <>
+                                <Clock className="w-4 h-4 mr-1 animate-spin" />
+                                생성 중...
+                              </>
+                            ) : (
+                              <>
+                                <FileText className="w-4 h-4 mr-1" />
+                                문서 자동 생성
+                              </>
+                            )}
+                          </Button>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Section 3: 문서 자동 생성 결과 */}
+          <Card className="rounded-xl shadow-md">
+            <CardHeader className="pb-4">
+              <CardTitle className="text-lg flex items-center">
+                <FileText className="w-5 h-5 mr-2 text-green-600" />
+                문서 자동 생성 결과
+              </CardTitle>
+              <CardDescription>
+                {selectedVehicle
+                  ? `${selectedVehicle.vehicleNumber} 차량의 문서 생성 결과`
+                  : "차량을 선택하여 문서를 생성하세요"}
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="px-6 pb-6">
+              {!selectedVehicle ? (
+                <div className="text-center py-12 text-gray-500">
+                  <FileText className="w-16 h-16 mx-auto mb-4 text-gray-300" />
+                  <p className="text-base">
+                    좌측에서 차량을 선택하고
+                    <br />
+                    문서 자동 생성 버튼을 클릭하세요
+                  </p>
+                </div>
+              ) : isGenerating ? (
+                <div className="text-center py-12">
+                  <div className="animate-spin w-8 h-8 border-4 border-blue-600 border-t-transparent rounded-full mx-auto mb-4"></div>
+                  <p className="text-base text-gray-600">문서를 생성하고 있습니다...</p>
+                </div>
+              ) : documentResult ? (
+                <div className="space-y-6">
+                  {/* 선택된 차량 정보 */}
+                  <div className="bg-blue-50 rounded-lg p-4">
+                    <h4 className="font-semibold text-base mb-2">선택된 차량</h4>
+                    <div className="grid grid-cols-2 gap-2 text-sm">
+                      <div>
+                        <span className="text-gray-600">차량번호:</span> {selectedVehicle.vehicleNumber}
                       </div>
-                      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 text-sm text-gray-400 mb-4">
-                        <div>
-                          <span className="block text-gray-500">관세 ID</span>
-                          <span className="text-white font-mono">{doc.id}</span>
-                        </div>
-                        <div>
-                          <span className="block text-gray-500">수출업체</span>
-                          <span className="text-white">{doc.exporter}</span>
-                        </div>
-                        <div>
-                          <span className="block text-gray-500">신고가액</span>
-                          <span className="text-orange-500 font-semibold">${doc.customsValue.toLocaleString()}</span>
-                        </div>
-                        <div>
-                          <span className="block text-gray-500">HS 코드</span>
-                          <span className="text-white font-mono">{doc.tariffCode}</span>
-                        </div>
+                      <div>
+                        <span className="text-gray-600">차종:</span> {selectedVehicle.vehicleType}
                       </div>
-                      <div className="flex flex-wrap gap-2 mb-3">
-                        {doc.documents.map((docType, index) => (
-                          <Badge key={index} variant="outline" className="border-gray-600 text-gray-300">
-                            {docType}
-                          </Badge>
-                        ))}
+                      <div>
+                        <span className="text-gray-600">바이어:</span> {selectedVehicle.buyerName}
                       </div>
-                      <div className="text-sm text-gray-400">
-                        <span>제출일: {doc.submittedDate}</span>
-                        {doc.reviewDate && <span className="ml-4">검토일: {doc.reviewDate}</span>}
-                        {doc.approvalDate && <span className="ml-4">승인일: {doc.approvalDate}</span>}
+                      <div>
+                        <span className="text-gray-600">국가:</span> {selectedVehicle.buyerCountry}
                       </div>
-                      {doc.reviewNotes && (
-                        <div className="mt-2 p-2 bg-blue-500/10 border border-blue-500/20 rounded text-sm text-blue-300">
-                          검토의견: {doc.reviewNotes}
-                        </div>
-                      )}
-                      {doc.rejectionReason && (
-                        <div className="mt-2 p-2 bg-red-500/10 border border-red-500/20 rounded text-sm text-red-300">
-                          반려사유: {doc.rejectionReason}
-                        </div>
+                    </div>
+                  </div>
+
+                  {/* 생성된 문서 정보 */}
+                  <div className="space-y-4">
+                    <div className="flex items-center justify-between">
+                      <h4 className="font-semibold text-base">생성된 면장 정보</h4>
+                      {documentResult && (
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={handleEditDocument}
+                          className="bg-yellow-50 border-yellow-300 text-yellow-700 hover:bg-yellow-100"
+                        >
+                          <FileText className="w-3 h-3 mr-1" />
+                          면장 수정
+                        </Button>
                       )}
                     </div>
-                    <div className="flex gap-2">
-                      {(doc.status === "대기중" || doc.status === "검토중") && (
+
+                    {editingDocument === documentResult?.vehicleId ? (
+                      // 수정 모드
+                      <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4 space-y-3">
+                        <h5 className="font-medium text-yellow-800">면장 정보 수정</h5>
+                        <div className="space-y-3">
+                          <div>
+                            <Label className="text-sm">면장번호</Label>
+                            <Input
+                              value={editDocumentData.documentNumber}
+                              onChange={(e) =>
+                                setEditDocumentData((prev) => ({ ...prev, documentNumber: e.target.value }))
+                              }
+                              className="bg-white"
+                            />
+                          </div>
+                          <div>
+                            <Label className="text-sm">상품명</Label>
+                            <Input
+                              value={editDocumentData.productName}
+                              onChange={(e) =>
+                                setEditDocumentData((prev) => ({ ...prev, productName: e.target.value }))
+                              }
+                              className="bg-white"
+                            />
+                          </div>
+                          <div>
+                            <Label className="text-sm">수출조건</Label>
+                            <Input
+                              value={editDocumentData.exportCondition}
+                              onChange={(e) =>
+                                setEditDocumentData((prev) => ({ ...prev, exportCondition: e.target.value }))
+                              }
+                              className="bg-white"
+                            />
+                          </div>
+                          <div className="flex gap-2">
+                            <Button size="sm" onClick={handleSaveEdit} className="bg-green-600 hover:bg-green-700">
+                              <CheckCircle className="w-3 h-3 mr-1" />
+                              저장
+                            </Button>
+                            <Button size="sm" variant="outline" onClick={() => setEditingDocument(null)}>
+                              취소
+                            </Button>
+                          </div>
+                        </div>
+                      </div>
+                    ) : (
+                      // 일반 표시 모드
+                      <div className="bg-white border rounded-lg p-4 space-y-3">
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center">
+                            <div className="w-12 h-12 bg-red-100 rounded-lg flex items-center justify-center mr-3">
+                              <FileText className="w-6 h-6 text-red-600" />
+                            </div>
+                            <div>
+                              <div className="font-medium text-base">면장번호: {documentResult.documentNumber}</div>
+                              <div className="text-sm text-gray-500">발급일자: {documentResult.issuedDate}</div>
+                            </div>
+                          </div>
+                          <Badge className={getStatusColor(documentResult.status)}>{documentResult.status}</Badge>
+                        </div>
+
+                        <div className="grid grid-cols-2 gap-4 text-sm">
+                          <div>
+                            <span className="text-gray-600">상품명:</span>
+                            <div className="font-medium">{documentResult.productName}</div>
+                          </div>
+                          <div>
+                            <span className="text-gray-600">수출조건:</span>
+                            <div className="font-medium">{documentResult.exportCondition}</div>
+                          </div>
+                        </div>
+
+                        {documentResult.processedTime && (
+                          <div className="text-xs text-gray-500 border-t pt-2">
+                            처리시간: {documentResult.processedTime} / 담당자: {documentResult.processor}
+                          </div>
+                        )}
+                      </div>
+                    )}
+                  </div>
+
+                  {/* 액션 버튼들 */}
+                  <div className="space-y-3">
+                    <Button onClick={handleDownloadDocument} className="w-full bg-green-600 hover:bg-green-700">
+                      <Download className="w-4 h-4 mr-2" />
+                      면장 다운로드
+                    </Button>
+
+                    {/* 면장 처리 완료 후 쇼링업체 선택 */}
+                    {documentResult?.status === "완료" && (
+                      <div className="space-y-3 p-4 bg-blue-50 rounded-lg border border-blue-200">
+                        <h5 className="font-medium text-blue-800">쇼링업체 선택</h5>
+                        <Select value={selectedShoring} onValueChange={setSelectedShoring}>
+                          <SelectTrigger className="w-full bg-white">
+                            <SelectValue placeholder="쇼링업체를 선택하세요" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {shoringCompanies.map((company) => (
+                              <SelectItem key={company.id} value={company.id}>
+                                <div className="flex items-center">
+                                  <Building className="w-4 h-4 mr-2" />
+                                  <div>
+                                    <div className="font-medium">{company.name}</div>
+                                    <div className="text-xs text-gray-500">{company.contact}</div>
+                                  </div>
+                                </div>
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
                         <Button
-                          size="sm"
-                          onClick={() => handleStartReview(doc)}
-                          className="bg-orange-500/20 text-orange-300 border border-orange-500/30 hover:bg-orange-500/30"
+                          onClick={handleSendToShoring}
+                          disabled={!selectedShoring}
+                          className="w-full bg-blue-600 hover:bg-blue-700"
                         >
-                          <Edit className="w-4 h-4 mr-1" />
-                          검토
+                          <Send className="w-4 h-4 mr-2" />
+                          쇼링업체에 전달
                         </Button>
-                      )}
-                      {doc.status === "승인" && (
-                        <Button
-                          size="sm"
-                          onClick={() => handleDownloadCertificate(doc)}
-                          className="bg-green-500/20 text-green-300 border border-green-500/30 hover:bg-green-500/30"
-                        >
-                          <Download className="w-4 h-4 mr-1" />
-                          승인증
-                        </Button>
-                      )}
+                      </div>
+                    )}
+
+                    {/* 상태 변경 버튼들 */}
+                    <div className="grid grid-cols-2 gap-2">
                       <Button
-                        size="sm"
                         variant="outline"
-                        className="border-gray-600 text-gray-300 hover:bg-gray-700 bg-transparent"
+                        size="sm"
+                        onClick={() => changeDocumentStatus("보류")}
+                        className="bg-yellow-50 border-yellow-300 text-yellow-700 hover:bg-yellow-100"
                       >
-                        <Eye className="w-4 h-4 mr-1" />
-                        상세
+                        보류 처리
+                      </Button>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => changeDocumentStatus("실패")}
+                        className="bg-red-50 border-red-300 text-red-700 hover:bg-red-100"
+                      >
+                        실패 처리
                       </Button>
                     </div>
                   </div>
                 </div>
-              ))}
-            </div>
-          </CardContent>
-        </Card>
+              ) : (
+                <div className="text-center py-12 text-gray-500">
+                  <FileText className="w-16 h-16 mx-auto mb-4 text-gray-300" />
+                  <p className="text-base">문서 생성을 시작하세요</p>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        </div>
       </div>
     </div>
   )
